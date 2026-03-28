@@ -11,6 +11,7 @@ from .models import (
 )
 
 from .word_extractor import WordExtractor
+from .pdf_extractor import PDFExtractor
 from .image_describer import ImageDescriber
 from .text_formatter import TextFormatter, BiologyQuestionFormatter
 from .main import DocumentProcessor
@@ -25,6 +26,7 @@ __all__ = [
 
     # 处理器类
     "WordExtractor",
+    "PDFExtractor",
     "ImageDescriber",
     "TextFormatter",
     "BiologyQuestionFormatter",

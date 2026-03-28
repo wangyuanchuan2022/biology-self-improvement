@@ -15,6 +15,7 @@ class ImageType(Enum):
     MICROSCOPE = "microscope"  # 显微图
     STRUCTURE = "structure"    # 结构图
     TABLE = "table"            # 表格
+    PDF_PAGE = "pdf_page"      # PDF页面
     OTHER = "other"            # 其他
 
 

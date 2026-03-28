@@ -60,7 +60,7 @@ class Config:
             },
             "ollama": {
                 "base_url": "http://localhost:11434",
-                "model": "qwen2.5-vl:8b",
+                "model": "qwen3-vl:8b",
                 "timeout": 60
             },
             # 文档处理配置
@@ -68,7 +68,8 @@ class Config:
                 "enable_image_descriptions": True,
                 "image_quality": 85,
                 "max_image_size": (1024, 1024),
-                "output_dir": "processed_output"
+                "output_dir": "processed_output",
+                "pdf_dpi": 150
             },
             # 智能体配置
             "agents": {

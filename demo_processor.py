@@ -51,6 +51,40 @@ def create_test_document():
     return str(test_doc_path)
 
 
+def create_test_pdf():
+    """创建测试PDF文档"""
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+    except ImportError:
+        print("请先安装 reportlab: pip install reportlab")
+        return None
+
+    # 创建测试PDF
+    test_pdf_path = project_root / "test_question.pdf"
+    c = canvas.Canvas(str(test_pdf_path), pagesize=letter)
+    c.setFont("Helvetica", 12)
+
+    # 添加内容
+    c.drawString(100, 750, "生物学测试试题 - PDF版本")
+    c.drawString(100, 730, "1. 请描述细胞有丝分裂的主要过程。")
+    c.drawString(100, 710, " ")
+    c.drawString(100, 690, "如图所示为细胞有丝分裂的示意图（图1）。")
+    c.drawString(100, 670, "请详细描述图中的各时期特征。")
+    c.drawString(100, 650, " ")
+    c.drawString(100, 630, "2. 比较有丝分裂和减数分裂的主要区别。")
+    c.drawString(100, 610, " ")
+    c.drawString(100, 590, "评分标准")
+    c.drawString(100, 570, "1. 准确描述有丝分裂各时期特征（3分）")
+    c.drawString(100, 550, "2. 正确使用专业术语（2分）")
+    c.drawString(100, 530, "3. 比较分析全面准确（5分）")
+
+    c.save()
+
+    print(f"测试PDF已创建: {test_pdf_path}")
+    return str(test_pdf_path)
+
+
 def demonstrate_processor():
     """演示文档处理器功能"""
     print("=" * 60)
@@ -71,8 +105,11 @@ def demonstrate_processor():
     # 检查现有测试文档
     possible_docs = [
         "test_question.docx",
+        "test_question.pdf",
         "sample_question.docx",
-        "生物试题示例.docx"
+        "sample_question.pdf",
+        "生物试题示例.docx",
+        "生物试题示例.pdf"
     ]
 
     for doc_name in possible_docs:
@@ -81,22 +118,41 @@ def demonstrate_processor():
             test_docs.append(str(doc_path))
             print(f"找到测试文档: {doc_path}")
 
-    # 如果没有找到测试文档，创建一个
-    if not test_docs:
-        print("未找到测试文档，创建测试文档...")
+    # 确保至少有一个Word文档和一个PDF文档
+    has_word = any(doc.endswith('.docx') for doc in test_docs)
+    has_pdf = any(doc.endswith('.pdf') for doc in test_docs)
+
+    if not has_word:
+        print("未找到Word测试文档，创建测试Word文档...")
         test_doc = create_test_document()
         if test_doc:
             test_docs.append(test_doc)
+            has_word = True
+
+    if not has_pdf:
+        print("未找到PDF测试文档，创建测试PDF文档...")
+        test_pdf = create_test_pdf()
+        if test_pdf:
+            test_docs.append(test_pdf)
+            has_pdf = True
 
     if not test_docs:
         print("无法创建或找到测试文档，演示终止")
         return
 
+    print(f"\n将处理 {len(test_docs)} 个测试文档:")
+    for doc in test_docs:
+        print(f"  - {os.path.basename(doc)}")
+
     # 创建文档处理器
     print("\n创建文档处理器...")
     processor = DocumentProcessor(
-        ollama_base_url=config.get("ollama.base_url"),
-        enable_image_descriptions=config.get("document_processor.enable_image_descriptions")
+        config={
+            "ollama_base_url": config.get("ollama.base_url"),
+            "ollama_model": config.get("ollama.model"),
+            "enable_image_descriptions": config.get("document_processor.enable_image_descriptions"),
+            "pdf_dpi": config.get("document_processor.pdf_dpi", 150)
+        }
     )
 
     # 处理文档
@@ -143,45 +199,15 @@ def demonstrate_processor():
     print("=" * 60)
 
 
-def check_dependencies():
-    """检查依赖项"""
-    print("检查依赖项...")
-
-    dependencies = {
-        "python-docx": "文档处理",
-        "requests": "HTTP请求",
-        "pydantic": "数据验证",
-        "pillow": "图片处理",
-        "python-dotenv": "环境变量管理"
-    }
-
-    missing = []
-
-    for package, purpose in dependencies.items():
-        try:
-            __import__(package.replace('-', '_'))
-            print(f"  ✓ {package} ({purpose})")
-        except ImportError:
-            print(f"  ✗ {package} ({purpose}) - 未安装")
-            missing.append(package)
-
-    if missing:
-        print(f"\n缺少依赖项，请安装: pip install {' '.join(missing)}")
-        return False
-
-    print("\n所有依赖项检查通过")
-    return True
-
-
 def check_ollama():
     """检查Ollama服务"""
     import requests
 
     print("\n检查Ollama服务...")
 
-    config = get_config()
+    config = init_config(".env")
     ollama_url = config.get("ollama.base_url", "http://localhost:11434")
-    model = config.get("ollama.model", "qwen2.5-vl:8b")
+    model = config.get("ollama.model", "qwen3-vl:8b")
 
     try:
         # 检查服务是否运行
@@ -216,10 +242,6 @@ def main():
     """主函数"""
     print("生物学习智能体 - 文档处理器演示")
     print()
-
-    # 检查依赖项
-    if not check_dependencies():
-        return
 
     # 检查Ollama服务
     if not check_ollama():

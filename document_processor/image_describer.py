@@ -17,7 +17,7 @@ from .models import DocumentImage, ImageType
 class ImageDescriber:
     """图片描述生成器"""
 
-    def __init__(self, ollama_base_url: str = "http://localhost:11434"):
+    def __init__(self, ollama_base_url: str = "http://localhost:11434", model_name: str = "qwen3-vl:8b"):
         """
         初始化图片描述生成器
 
@@ -25,7 +25,7 @@ class ImageDescriber:
             ollama_base_url: Ollama API基础URL
         """
         self.ollama_base_url = ollama_base_url
-        self.model_name = "qwen2.5-vl:8b"  # 使用qwen2.5-vl:8b模型
+        self.model_name = model_name  # 使用qwen2.5-vl:8b模型
 
         # 图片类型到提示词的映射
         self.prompt_templates = {
@@ -35,6 +35,7 @@ class ImageDescriber:
             ImageType.MICROSCOPE: self._create_microscope_prompt(),
             ImageType.STRUCTURE: self._create_structure_prompt(),
             ImageType.TABLE: self._create_table_prompt(),
+            ImageType.PDF_PAGE: self._create_pdf_page_prompt(),
             ImageType.OTHER: self._create_general_prompt()
         }
 
@@ -227,6 +228,22 @@ class ImageDescriber:
 5. 统计信息（如p值、标准差等）
 
 请准确提取和描述表格数据，指出重要的生物学发现或趋势。"""
+
+    def _create_pdf_page_prompt(self) -> str:
+        """创建PDF页面提示词"""
+        return """请详细描述这张PDF页面的内容。这是一张生物学试题的PDF页面截图，请特别注意：
+1. 页面的全部文本内容，包括试题题目、选项、说明等
+2. 图片、图表、示意图等非文本元素及其内容
+3. 空白区域或填空处（用"____"或留空表示的位置）
+4. 页面布局和结构（标题、副标题、编号等）
+5. 特殊符号或标记
+
+对于填空处，请明确指出：
+- 填空的具体位置（如：第1题第2空）
+- 填空的上下文（前后文）
+- 填空可能要求的内容类型（名词、数字、短语等）
+
+请用清晰的结构描述整个页面内容，确保所有文本信息都被准确提取，特别是填空区域要重点标注。"""
 
     def _create_general_prompt(self) -> str:
         """创建通用提示词"""
