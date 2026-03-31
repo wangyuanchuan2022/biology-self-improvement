@@ -39,15 +39,78 @@ class DocumentProcessor:
         """
         # 从配置或参数获取设置
         if config:
-            self.ollama_base_url = config.get("ollama_base_url", "http://localhost:11434")
-            self.ollama_model = config.get("ollama_model", "qwen3-vl:8b")
-            self.enable_image_descriptions = config.get("enable_image_descriptions", True)
-            self.pdf_dpi = config.get("pdf_dpi", 150)
+            self.ollama_base_url = config.get("ollama_base_url")
+            self.ollama_model = config.get("ollama_model")
+            self.enable_image_descriptions = config.get("enable_image_descriptions")
+            self.pdf_dpi = config.get("pdf_dpi")
+
+            # 如果config字典中缺少值（None），尝试从全局配置获取
+            try:
+                from utils.config import get_config
+                global_config = get_config()
+                if self.ollama_base_url is None:
+                    self.ollama_base_url = global_config.get("ollama.base_url")
+                if self.ollama_model is None:
+                    self.ollama_model = global_config.get("ollama.model")
+                if self.enable_image_descriptions is None:
+                    self.enable_image_descriptions = global_config.get("document_processor.enable_image_descriptions")
+                if self.pdf_dpi is None:
+                    self.pdf_dpi = global_config.get("document_processor.pdf_dpi")
+            except ImportError:
+                # 如果配置模块不可用，使用硬编码默认值
+                if self.ollama_base_url is None:
+                    self.ollama_base_url = "http://localhost:11434"
+                if self.ollama_model is None:
+                    self.ollama_model = "qwen3-vl:8b"
+                if self.enable_image_descriptions is None:
+                    self.enable_image_descriptions = True
+                if self.pdf_dpi is None:
+                    self.pdf_dpi = 150
         else:
-            self.ollama_base_url = ollama_base_url or "http://localhost:11434"
-            self.ollama_model = ollama_model or "qwen3-vl:8b"
-            self.enable_image_descriptions = enable_image_descriptions
-            self.pdf_dpi = pdf_dpi
+            # 尝试从全局配置获取值
+            try:
+                from utils.config import get_config
+                global_config = get_config()
+                if ollama_base_url is None:
+                    self.ollama_base_url = global_config.get("ollama.base_url")
+                else:
+                    self.ollama_base_url = ollama_base_url
+
+                if ollama_model is None:
+                    self.ollama_model = global_config.get("ollama.model")
+                else:
+                    self.ollama_model = ollama_model
+
+                if enable_image_descriptions is None:
+                    self.enable_image_descriptions = global_config.get("document_processor.enable_image_descriptions")
+                else:
+                    self.enable_image_descriptions = enable_image_descriptions
+
+                if pdf_dpi is None:
+                    self.pdf_dpi = global_config.get("document_processor.pdf_dpi")
+                else:
+                    self.pdf_dpi = pdf_dpi
+            except ImportError:
+                # 如果配置模块不可用，使用参数或硬编码默认值
+                if ollama_base_url is None:
+                    self.ollama_base_url = "http://localhost:11434"
+                else:
+                    self.ollama_base_url = ollama_base_url
+
+                if ollama_model is None:
+                    self.ollama_model = "qwen3-vl:8b"
+                else:
+                    self.ollama_model = ollama_model
+
+                if enable_image_descriptions is None:
+                    self.enable_image_descriptions = True
+                else:
+                    self.enable_image_descriptions = enable_image_descriptions
+
+                if pdf_dpi is None:
+                    self.pdf_dpi = 150
+                else:
+                    self.pdf_dpi = pdf_dpi
 
         # 初始化提取器
         self.word_extractor = WordExtractor()
@@ -316,10 +379,10 @@ if __name__ == "__main__":
         # 从配置创建处理器
         processor = DocumentProcessor(
             config={
-                "ollama_base_url": config_obj.get("ollama.base_url", "http://localhost:11434"),
-                "ollama_model": config_obj.get("ollama.model", "qwen3-vl:8b"),
-                "enable_image_descriptions": config_obj.get("document_processor.enable_image_descriptions", True),
-                "pdf_dpi": config_obj.get("document_processor.pdf_dpi", 150)
+                "ollama_base_url": config_obj.get("ollama.base_url"),
+                "ollama_model": config_obj.get("ollama.model"),
+                "enable_image_descriptions": config_obj.get("document_processor.enable_image_descriptions"),
+                "pdf_dpi": config_obj.get("document_processor.pdf_dpi")
             }
         )
         print("从配置初始化文档处理器")

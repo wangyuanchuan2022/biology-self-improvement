@@ -142,16 +142,23 @@ Mode: Builder
 2. **文档解析复杂度**：Word 文档中的图片（如实验图、流程图）对答题很重要，你希望如何处理这些图片？
    - **方案 A（推荐）**：使用本地 Ollama + DeepSeek OCR 将图片转换为 Markdown
      ```bash
-     ollama run deepseek-ocr "/path/to/image" "<|grounding|>Convert the document to markdown."
+     ollama run deepseek-ocr "/path/to/image" "<|grounding|>Convert the document to Markdown."
      ```
      - 优点：本地运行，保护隐私；无额外 API 成本；支持批量处理
      - 适用：实验图、流程图、表格等文档图片
    - 方案 B：使用多模态 LLM（如 GPT-4V、Claude 3V）处理
    - 方案 C：人工预处理，将图片描述为文本
 
-3. **开源协议**：你希望使用MIT
+3. **PDF文档支持**：项目需要处理PDF格式的生物学试题吗？如果需要，如何处理？
+   - **方案 A（推荐）**：参考MarkPDFDown项目设计，使用PyMuPDF直接转换PDF页面为图片，支持页面范围选择
+     - 优点：高效，支持大型文档，减少依赖（避免pdf2image）
+     - 设计：工厂模式（FileWorker基类），统一接口，支持重试机制
+   - 方案 B：使用现有pdf2image方案，保持向后兼容
+   - 方案 C：仅支持Word格式，PDF需要用户手动转换
 
-4. 你希望独自完成
+4. **开源协议**：你希望使用MIT
+
+5. 你希望独自完成
 
 ---
 
@@ -161,6 +168,7 @@ Mode: Builder
 
 1. **功能完整性**：
    - [ ] 能够读取 Word 格式的试题和评分标准
+   - [ ] 支持 PDF 格式的试题处理（参考MarkPDFDown设计，支持页面范围选择）
    - [ ] 能够实现"Actor 答题 → Reviewer 评审 → Reflector 反思"的完整循环
    - [ ] 能够输出每一轮的改进点和最终优化后的答案
 
@@ -205,6 +213,9 @@ Mode: Builder
 - **Python 3.9+**: 主要开发语言
 - **OpenAI/Deepseek/Kimi API**: LLM 服务
 - **python-docx**: Word 文档解析
+- **PyMuPDF (fitz)**: PDF文档处理（文本提取和图片转换）
+- **pdf2image**: PDF转图片备选方案
+- **PyPDF2**: PDF页面范围提取
 - **PyYAML**: 配置文件管理
 - **pytest**: 测试框架
 - **pydantic**: 数据验证和序列化

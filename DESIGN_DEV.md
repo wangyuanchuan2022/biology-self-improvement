@@ -28,13 +28,39 @@
 - 文本格式化器
 - 配置管理系统 (从.env加载)
 
-### 2.2 PDF支持扩展 (2026-03-28)
-✅ **PDF处理器模块** - 新增
-- PDF提取器 (pdf2image + PyMuPDF)
-- PDF页面转图片 (每页一张图)
+### 2.2 PDF处理模块优化 (基于MarkPDFDown设计参考)
+✅ **PDF处理器模块** - 需要优化
+- 支持页面范围选择（start_page, end_page参数）
+- 使用PyMuPDF直接转换PDF页面为图片（减少依赖，提高效率）
+- 保留pdf2image作为备选方案
 - 文本提取和OCR备用方案
-- 支持混合格式处理 (Word + PDF)
+- 支持混合格式处理（Word + PDF + 图片）
 - 填空区域识别提示词优化
+- 工厂模式设计：根据文件类型创建对应的处理器
+- 改进的错误处理和重试机制
+
+#### 从MarkPDFDown借鉴的关键设计：
+1. **页面范围选择**：支持处理PDF的指定页面，提高处理大型文档的效率
+2. **工厂模式**：`create_worker()`根据文件扩展名创建对应的处理器（PDFWorker, ImageWorker）
+3. **直接图片转换**：使用PyMuPDF的`get_pixmap()`直接生成图片，避免pdf2image依赖
+4. **统一接口**：所有处理器实现相同的`convert_to_images()`接口
+5. **验证机制**：`validate_page_range()`确保页面范围有效
+6. **重试机制**：LLM调用支持重试，提高稳定性
+
+#### PDF处理流程优化：
+```
+PDF文档 (.pdf)
+    ↓
+PDFWorker (支持页面范围选择)
+    ↓
+PyMuPDF 直接转换为图片 (或pdf2image备选)
+    ↓
+每页图片 + PyMuPDF文本提取
+    ↓
+Ollama (qwen3-vl:8b) 生成图片描述
+    ↓
+文本与图片描述合并为纯文本输入
+```
 
 ### 2.3 测试套件
 ✅ **自动化测试** - 新增
@@ -100,8 +126,11 @@ Ollama (qwen3-vl:8b) 生成图片描述
 ```
 ├── document_processor/      # 文档处理
 │   ├── word_extractor.py    # Word文档解析
+│   ├── pdf_extractor.py     # PDF文档解析（支持页面范围选择）
 │   ├── image_describer.py   # 图片描述生成
-│   └── text_formatter.py    # 文本格式化
+│   ├── text_formatter.py    # 文本格式化
+│   ├── file_worker.py       # 文件处理器工厂（参考MarkPDFDown）
+│   └── models.py            # 数据模型
 │
 ├── agents/                  # 智能体系统
 │   ├── actor.py            # 学生角色
@@ -130,9 +159,32 @@ Ollama (qwen3-vl:8b) 生成图片描述
 
 #### 3.2.1 文档处理器接口
 ```python
+class FileWorker(ABC):
+    """文件处理器基类（参考MarkPDFDown工厂模式）"""
+    def __init__(self, input_path: str):
+        self.input_path = input_path
+
+    @abstractmethod
+    def convert_to_images(self, **kwargs) -> List[DocumentImage]:
+        """转换文件为图片"""
+        pass
+
+class PDFWorker(FileWorker):
+    """PDF处理器，支持页面范围选择"""
+    def __init__(self, input_path: str, start_page: int = 1, end_page: int = 0):
+        super().__init__(input_path)
+        # 支持页面范围选择，参考MarkPDFDown的validate_page_range
+        pass
+
+    def convert_to_images(self, dpi: int = 150) -> List[DocumentImage]:
+        """将PDF页面转换为图片"""
+        pass
+
 class DocumentProcessor:
-    def extract_content(self, docx_path: str) -> DocumentContent:
-        """提取Word文档内容，生成图片描述"""
+    def extract_content(self, file_path: str,
+                       start_page: int = 1,
+                       end_page: int = 0) -> DocumentContent:
+        """提取文档内容，支持多种格式和页面范围"""
         pass
 
     def format_for_agents(self, content: DocumentContent) -> AgentInput:
@@ -190,12 +242,17 @@ class StateManager:
 ### 4.1 第一阶段：核心基础设施 (Week 1)
 1. **实现文档处理器**
    - python-docx集成
+   - PDF处理器优化（参考MarkPDFDown设计）
+     - 支持页面范围选择
+     - 工厂模式：FileWorker基类，PDFWorker, ImageWorker
+     - 使用PyMuPDF直接转换图片（减少依赖）
    - Ollama图片描述生成
    - 图片描述prompt设计（针对生物学试题）
 
 2. **实现LLM客户端**
    - Ollama本地模型集成
    - Deepseek API客户端
+   - 添加重试机制（参考MarkPDFDown的retry逻辑）
 
 3. **设计智能体基础架构**
    - 定义基类和接口
@@ -296,6 +353,14 @@ python-docx>=0.8.11
 requests>=2.31.0
 pydantic>=2.5.0
 pytest>=7.4.0
+
+# PDF处理（参考MarkPDFDown设计）
+pymupdf>=1.23.0        # PyMuPDF，用于PDF文本提取和直接图片转换
+pdf2image>=1.16.0      # 备选PDF转图片方案
+PyPDF2>=3.0.0          # PDF页面范围提取
+
+# 图片处理
+Pillow>=10.0.0         # 图片处理
 
 # Ollama集成（通过HTTP API）
 # Deepseek API（通过HTTP API）

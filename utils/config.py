@@ -55,13 +55,13 @@ class Config:
                 "api_key": "",
                 "base_url": "https://api.deepseek.com",
                 "model": "deepseek-chat",
-                "timeout": 30,
+                "timeout": 120,
                 "max_tokens": 2000
             },
             "ollama": {
                 "base_url": "http://localhost:11434",
-                "model": "qwen3-vl:8b",
-                "timeout": 60
+                "model": "qwen3-vl:4b",
+                "timeout": 120
             },
             # 文档处理配置
             "document_processor": {
@@ -99,6 +99,18 @@ class Config:
         if model := os.getenv("DEEPSEEK_MODEL"):
             self.config["deepseek"]["model"] = model
 
+        if timeout := os.getenv("DEEPSEEK_TIMEOUT"):
+            try:
+                self.config["deepseek"]["timeout"] = int(timeout)
+            except ValueError:
+                pass
+
+        if max_tokens := os.getenv("DEEPSEEK_MAX_TOKENS"):
+            try:
+                self.config["deepseek"]["max_tokens"] = int(max_tokens)
+            except ValueError:
+                pass
+
         # Ollama配置
         if base_url := os.getenv("OLLAMA_BASE_URL"):
             self.config["ollama"]["base_url"] = base_url
@@ -106,12 +118,64 @@ class Config:
         if model := os.getenv("OLLAMA_MODEL"):
             self.config["ollama"]["model"] = model
 
+        # 文档处理配置
+        if enable := os.getenv("DOCUMENT_PROCESSOR_ENABLE_IMAGE_DESCRIPTIONS"):
+            self.config["document_processor"]["enable_image_descriptions"] = enable.lower() in ("true", "1", "yes")
+
+        if quality := os.getenv("DOCUMENT_PROCESSOR_IMAGE_QUALITY"):
+            try:
+                self.config["document_processor"]["image_quality"] = int(quality)
+            except ValueError:
+                pass
+
+        if dpi := os.getenv("DOCUMENT_PROCESSOR_PDF_DPI"):
+            try:
+                self.config["document_processor"]["pdf_dpi"] = int(dpi)
+            except ValueError:
+                pass
+
+        if output_dir := os.getenv("DOCUMENT_PROCESSOR_OUTPUT_DIR"):
+            self.config["document_processor"]["output_dir"] = output_dir
+
+        # 智能体配置
+        if max_iter := os.getenv("AGENTS_MAX_ITERATIONS"):
+            try:
+                self.config["agents"]["max_iterations"] = int(max_iter)
+            except ValueError:
+                pass
+
+        if temp := os.getenv("AGENTS_TEMPERATURE"):
+            try:
+                self.config["agents"]["temperature"] = float(temp)
+            except ValueError:
+                pass
+
+        if enable_log := os.getenv("AGENTS_ENABLE_LOGGING"):
+            self.config["agents"]["enable_logging"] = enable_log.lower() in ("true", "1", "yes")
+
+        if log_dir := os.getenv("AGENTS_LOG_DIR"):
+            self.config["agents"]["log_dir"] = log_dir
+
         # 系统配置
         if log_level := os.getenv("LOG_LEVEL"):
             self.config["system"]["log_level"] = log_level
 
         if debug := os.getenv("DEBUG"):
             self.config["system"]["debug"] = debug.lower() in ("true", "1", "yes")
+
+        if data_dir := os.getenv("DATA_DIR"):
+            self.config["system"]["data_dir"] = data_dir
+
+        if cache_dir := os.getenv("CACHE_DIR"):
+            self.config["system"]["cache_dir"] = cache_dir
+
+        # 目录配置（向后兼容）
+        if output_dir := os.getenv("OUTPUT_DIR"):
+            self.config["document_processor"]["output_dir"] = output_dir
+
+        if log_dir := os.getenv("LOG_DIR"):
+            self.config["agents"]["log_dir"] = log_dir
+            self.config["system"]["log_dir"] = log_dir
 
     def load_config(self, config_file: str):
         """
